@@ -1,0 +1,9 @@
+streamlit
+geopandas
+fiona
+pyproj
+shapely
+pandas
+matplotlib
+seaborn
+scikit-learn
