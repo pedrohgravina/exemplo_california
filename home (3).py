@@ -1,4 +1,5 @@
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import pydeck as pdk
 import shapely
@@ -6,25 +7,17 @@ import streamlit as st
 
 from joblib import load
 
-from california.config import (
-    GEO_MEDIAN_DF_FILE,
-    INTERIM_DATA_FILE,
-    BEST_MODEL_FILE,
-)
-
-from california.streamlit_helpers import find_me_buttons, text_from_markdown
-
-PAGE_TEXT_FILE = "./pages/01_home.md"
+from notebooks.src.config import DADOS_GEO_MEDIAN, DADOS_LIMPOS, MODELO_FINAL
 
 
 @st.cache_data
-def load_data():
-    return pd.read_parquet(INTERIM_DATA_FILE)
+def carregar_dados_limpos():
+    return pd.read_parquet(DADOS_LIMPOS)
 
 
 @st.cache_data
-def load_geo_data():
-    gdf_geo = gpd.read_parquet(GEO_MEDIAN_DF_FILE)
+def carregar_dados_geo():
+    gdf_geo = gpd.read_parquet(DADOS_GEO_MEDIAN)
 
     # Explode MultiPolygons into individual polygons
     gdf_geo = gdf_geo.explode(ignore_index=True)
@@ -61,90 +54,90 @@ def load_geo_data():
 
 
 @st.cache_resource
-def load_model():
-    return load(BEST_MODEL_FILE)
+def carregar_modelo():
+    return load(MODELO_FINAL)
 
 
-df = load_data()
-gdf_geo = load_geo_data()
-model = load_model()
+df = carregar_dados_limpos()
+gdf_geo = carregar_dados_geo()
+modelo = carregar_modelo()
 
 
-st.title("Predict house prices in California")
+st.title("Previsão de preços de imóveis")
 
-content = text_from_markdown(PAGE_TEXT_FILE)
+condados = sorted(gdf_geo["name"].unique())
 
-st.markdown("".join(content[0]))
+coluna1, coluna2 = st.columns(2)
 
-counties = sorted(gdf_geo["name"].unique())
+with coluna1:
 
-column1, column2 = st.columns(2)
-
-with column1:
     with st.form(key="formulario"):
-        select_county = st.selectbox("County", counties)
 
-        longitude = gdf_geo.query("name == @select_county")["longitude"].values
-        latitude = gdf_geo.query("name == @select_county")["latitude"].values
+        selecionar_condado = st.selectbox("Condado", condados)
+
+        longitude = gdf_geo.query("name == @selecionar_condado")["longitude"].values
+        latitude = gdf_geo.query("name == @selecionar_condado")["latitude"].values
 
         housing_median_age = st.number_input(
-            "House age", value=10, min_value=1, max_value=50
+            "Idade do imóvel", value=10, min_value=1, max_value=50
         )
 
-        total_rooms = gdf_geo.query("name == @select_county")[
-            "total_rooms"
+        total_rooms = gdf_geo.query("name == @selecionar_condado")["total_rooms"].values
+        total_bedrooms = gdf_geo.query("name == @selecionar_condado")[
+            "total_bedrooms"
         ].values
-        population = gdf_geo.query("name == @select_county")[
-            "population"
-        ].values
+        population = gdf_geo.query("name == @selecionar_condado")["population"].values
+        households = gdf_geo.query("name == @selecionar_condado")["households"].values
 
         median_income = st.slider(
-            "Median income (thousands US$)", 5.0, 100.0, 45.0, 5.0
+            "Renda média (milhares de US$)", 5.0, 100.0, 45.0, 5.0
         )
 
         median_income_scale = median_income / 10
 
-        ocean_proximity = gdf_geo.query("name == @select_county")[
+        ocean_proximity = gdf_geo.query("name == @selecionar_condado")[
             "ocean_proximity"
         ].values
 
-        median_income_cat = gdf_geo.query("name == @select_county")[
-            "median_income_cat"
-        ].values
+        bins_income = [0, 1.5, 3, 4.5, 6, np.inf]
+        median_income_cat = np.digitize(median_income_scale, bins=bins_income)
 
-        rooms_per_household = gdf_geo.query("name == @select_county")[
+        rooms_per_household = gdf_geo.query("name == @selecionar_condado")[
             "rooms_per_household"
         ].values
-        bedrooms_per_room = gdf_geo.query("name == @select_county")[
+        bedrooms_per_room = gdf_geo.query("name == @selecionar_condado")[
             "bedrooms_per_room"
         ].values
-        population_per_household = gdf_geo.query("name == @select_county")[
+        population_per_household = gdf_geo.query("name == @selecionar_condado")[
             "population_per_household"
         ].values
 
-        model_input = {
+        entrada_modelo = {
             "longitude": longitude,
             "latitude": latitude,
             "housing_median_age": housing_median_age,
             "total_rooms": total_rooms,
+            "total_bedrooms": total_bedrooms,
             "population": population,
+            "households": households,
             "median_income": median_income_scale,
-            "rooms_per_household": rooms_per_household,
-            "population_per_household": population_per_household,
             "ocean_proximity": ocean_proximity,
             "median_income_cat": median_income_cat,
+            "rooms_per_household": rooms_per_household,
             "bedrooms_per_room": bedrooms_per_room,
+            "population_per_household": population_per_household,
         }
 
-        df_model_input = pd.DataFrame(model_input)
+        df_entrada_modelo = pd.DataFrame(entrada_modelo)
 
-        predict_button = st.form_submit_button("Predict price")
+        botao_previsao = st.form_submit_button("Prever preço")
 
-    if predict_button:
-        price = model.predict(df_model_input)
-        st.metric(label="Predict price: (US$)", value=f"{price[0]:.2f}")
+    if botao_previsao:
+        preco = modelo.predict(df_entrada_modelo)
+        st.metric(label="Preço previsto: (US$)", value=f"{preco[0][0]:.2f}")
 
-with column2:
+with coluna2:
+
     view_state = pdk.ViewState(
         latitude=float(latitude[0]),
         longitude=float(longitude[0]),
@@ -164,11 +157,11 @@ with column2:
         auto_highlight=True,
     )
 
-    selected_county = gdf_geo.query("name == @select_county")
+    condado_selecionado = gdf_geo.query("name == @selecionar_condado")
 
     highlight_layer = pdk.Layer(
         "PolygonLayer",
-        data=selected_county[["name", "geometry"]],
+        data=condado_selecionado[["name", "geometry"]],
         get_polygon="geometry",
         get_fill_color=[255, 0, 0, 100],
         get_line_color=[0, 0, 0],
@@ -178,19 +171,15 @@ with column2:
     )
 
     tooltip = {
-        "html": "<b>County:</b> {name}",
-        "style": {
-            "backgroundColor": "steelblue",
-            "color": "white",
-            "fontsize": "10px",
-        },
+        "html": "<b>Condado:</b> {name}",
+        "style": {"backgroundColor": "steelblue", "color": "white", "fontsize": "10px"},
     }
 
-    map = pdk.Deck(
+    mapa = pdk.Deck(
         initial_view_state=view_state,
         map_style="light",
         layers=[polygon_layer, highlight_layer],
         tooltip=tooltip,
     )
 
-    st.pydeck_chart(map)
+    st.pydeck_chart(mapa)
