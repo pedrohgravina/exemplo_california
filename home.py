@@ -132,9 +132,9 @@ with coluna1:
 
         botao_previsao = st.form_submit_button("Prever preço")
 
-    if botao_previsao:
-        preco = modelo.predict(df_entrada_modelo)
-        st.metric(label="Preço previsto: (US$)", value=f"{preco[0][0]:.2f}")
+        if botao_previsao:
+            preco = modelo.predict(df_entrada_modelo)
+            st.metric(label="Preço previsto: (US$)", value=f"{preco[0][0]:.2f}")
 
 with coluna2:
 
