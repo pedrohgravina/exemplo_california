@@ -64,52 +64,6 @@ The final model is available for interaction in a Streamlit app, where users can
 
 This allows for intuitive exploration of how price varies by geography and demographics.
 
-## Installation
-
-In order to set up the necessary environment:
-
-1. review and uncomment what you need in `environment.yml` and create an environment `california` with the help of [conda]:
-
-   ```
-   conda env create -f environment.yml
-   ```
-
-2. activate the new environment with:
-   ```
-   conda activate california
-   ```
-
-3. install the package in editable mode with:
-   ```
-   pip install -e .
-   ```
-   This will install the package in editable mode, so you can modify the source code and
-   directly import the package in Python.
-
-> **_NOTE:_**  The conda environment will have california installed in editable mode.
-> Some changes, e.g. in `setup.cfg`, might require you to run `pip install -e .` again.
-
-
-Optional and needed only once after `git clone`:
-
-4. install several [pre-commit] git hooks with:
-   ```bash
-   pre-commit install
-   # You might also want to run `pre-commit autoupdate`
-   ```
-   and checkout the configuration under `.pre-commit-config.yaml`.
-   The `-n, --no-verify` flag of `git commit` can be used to deactivate pre-commit hooks temporarily.
-
-5. install [nbstripout] git hooks to remove the output cells of committed notebooks with:
-   ```bash
-   nbstripout --install --attributes notebooks/.gitattributes
-   ```
-   This is useful to avoid large diffs due to plots in your notebooks.
-   A simple `nbstripout --uninstall` will revert these changes.
-
-
-Then take a look into the `notebooks` folder.
-
 ### MLFlow setup
 
 The notebooks have all the consolidated results of the models, with the
