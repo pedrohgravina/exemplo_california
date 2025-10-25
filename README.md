@@ -50,19 +50,6 @@ comparison of model metrics:
 The trained model was then exported and integrated into a Streamlit web app,
 where predictions can be visualized spatially on an interactive map.
 
-## Demo: Streamlit Application
-
-![streamlit](reports/figures/streamlit.png)
-
-The final model is available for interaction in a Streamlit app, where users can:
-
-[![streamlit app](https://img.shields.io/badge/-Streamlit%20app-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)](https://california-housing-prices.streamlit.app/)
-
-* Select a county from the map
-* Adjust inputs like house age or median income
-* View predicted median house values instantly
-
-This allows for intuitive exploration of how price varies by geography and demographics.
 
 ### MLFlow setup
 
